@@ -1,8 +1,16 @@
 {
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.ts", "use": "@vercel/node" }
+  ],
   "crons": [
     {
       "path": "/api/cron/poll",
-      "schedule": "0 0 * * *" 
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/sync-discourse",
+      "schedule": "*/15 * * * *"
     }
   ]
 } 
