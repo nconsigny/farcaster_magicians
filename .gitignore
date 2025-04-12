@@ -5,5 +5,3 @@ add-key.ts
 
 # Environment variables
 .env
-
-.vercel
