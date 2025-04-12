@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getLatestTopics } from '../../lib/discourse'; // Import the function to get latest topics
+import { getLatestTopics } from '../../lib/discourse.js'; // Import the function to get latest topics
 
 const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-magicians.org';
 // TODO: Replace with your actual domain
