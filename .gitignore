@@ -1,7 +1,6 @@
 bot_private_key.pem
 bot_public_key.pem
 add-key.ts
-node_modules
 .env
 
 # Environment variables
