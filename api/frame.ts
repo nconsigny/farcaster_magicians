@@ -1,5 +1,5 @@
 // import type { VercelRequest, VercelResponse } from '@vercel/node'; // Removed import
-import { getLatestTopics } from '@lib/discourse.js'; // Import the function using path alias
+import { getLatestTopics } from '../../lib/discourse.js'; // Use relative path
 
 const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-magicians.org';
 // TODO: Replace with your actual domain

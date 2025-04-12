@@ -1,7 +1,7 @@
 import 'dotenv/config';
 // import { VercelRequest, VercelResponse } from '@vercel/node'; // Removed import
-import { fetchNewDiscourseTopics } from '@lib/discourse.js';
-import { submitCast } from '@lib/farcaster.js';
+import { fetchNewDiscourseTopics } from '../../lib/discourse.js';
+import { submitCast } from '../../lib/farcaster.js';
 import { Embed } from '@farcaster/hub-web';
 
 const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-magicians.org';

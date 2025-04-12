@@ -1,7 +1,7 @@
 import 'dotenv/config';
 // import { VercelRequest, VercelResponse } from '@vercel/node'; // Removed import
-import { fetchNewDiscourseTopics } from '@lib/discourse.js';
-import { submitCast } from '@lib/farcaster.js';
+import { fetchNewDiscourseTopics } from '../../lib/discourse.js';
+import { submitCast } from '../../lib/farcaster.js';
 import { Embed } from '@farcaster/hub-web';
 
 // TODO: Replace with your actual domain
