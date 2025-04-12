@@ -55,6 +55,12 @@ interface DiscourseLatestTopicsResponse {
     };
 }
 
+interface SimpleTopic {
+    id: number;
+    title: string;
+    url: string;
+}
+
 async function readLastProcessedTopicId(): Promise<number> {
     try {
         const data = await fs.readFile(STATE_FILE, 'utf-8');
@@ -126,4 +132,47 @@ export async function fetchNewDiscourseTopics(): Promise<DiscourseTopic[]> {
 //         console.error(`Error fetching details for topic ${topicId}:`, error);
 //         return null;
 //     }
-// } 
+// }
+
+export async function getLatestTopics(): Promise<SimpleTopic[]> {
+    const latestTopicsUrl = `${DISCOURSE_BASE_URL}/latest.json`;
+    console.log(`Fetching latest topics from: ${latestTopicsUrl}`);
+
+    try {
+        const response = await fetch(latestTopicsUrl, {
+            headers: {
+                'Accept': 'application/json',
+                // Add any other necessary headers, like API keys if the forum requires them for /latest.json (unlikely for public reads)
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
+        }
+
+        const data = await response.json();
+
+        // Extract the list of topics from the response
+        // Adjust the path based on the actual Discourse API response structure
+        const topics: DiscourseTopic[] = data?.topic_list?.topics || [];
+
+        // Filter out potential pinned topics or categories if necessary (optional)
+        // Example: Filter out topics that are pinned globally
+        // const filteredTopics = topics.filter(topic => !topic.pinned_globally);
+
+        // Map the fetched topics to the simplified structure we need
+        const simplifiedTopics: SimpleTopic[] = topics.map(topic => ({
+            id: topic.id,
+            title: topic.title,
+            url: `${DISCOURSE_BASE_URL}/t/${topic.slug}/${topic.id}`
+        }));
+
+        console.log(`Fetched ${simplifiedTopics.length} latest topics.`);
+        return simplifiedTopics;
+
+    } catch (error) {
+        console.error('Error fetching Discourse topics:', error);
+        // Return an empty array or re-throw the error depending on desired error handling
+        return [];
+    }
+} 
