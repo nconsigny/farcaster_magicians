@@ -1,6 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchNewDiscourseTopics } from '../../lib/discourse';
-import { postCast } from '../../lib/farcaster';
+import 'dotenv/config';
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { fetchNewDiscourseTopics } from '@lib/discourse.js';
+import { submitCast } from '@lib/farcaster.js';
+import { Embed } from '@farcaster/hub-web';
 
 // TODO: Replace with your actual domain
 const FRAME_BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
@@ -26,7 +28,7 @@ export default async function handler(
       console.log(`Posting cast for topic ${topic.id}: ${topic.title}`);
 
       try {
-        await postCast(castText, [{ url: frameUrl }]);
+        await submitCast(castText, [{ url: frameUrl }]);
         // Optional: Add a small delay between posts to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (castError) {

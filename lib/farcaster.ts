@@ -11,6 +11,7 @@ import {
     HubAsyncResult, // Type for hub results
     CastId, // Import CastId type if replying
     MessageType, // Import MessageType
+    CastType, // Attempt to import CastType
 } from "@farcaster/hub-web";
 import { hexToBytes } from '@noble/hashes/utils';
 
@@ -88,7 +89,7 @@ export async function submitCast(
     };
 
     const castBody: CastAddBody = {
-        type: MessageType.CAST_ADD,
+        type: 1,
         text: text,
         embeds: embeds ?? [],
         embedsDeprecated: [],
