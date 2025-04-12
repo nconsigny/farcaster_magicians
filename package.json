@@ -1,0 +1,26 @@
+{
+  "name": "farcaster_magicians",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.1",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@farcaster/hub-web": "^0.9.6",
+    "@noble/ed25519": "^2.2.3",
+    "axios": "^1.8.4",
+    "express": "^5.1.0",
+    "node-cron": "^3.0.3"
+  }
+}
