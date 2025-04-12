@@ -1,94 +1,130 @@
+import 'dotenv/config'; // Ensure environment variables are loaded
 import {
-  getSSLHubRpcClient,
-  getInsecureHubRpcClient,
-  makeCastAdd,
-  NobleEd25519Signer,
-  FarcasterNetwork,
-  HubRpcClient
+    getHubRpcClient,
+    HubRpcClient, // Type for the client
+    FarcasterNetwork,
+    NobleEd25519Signer, // Class for the signer
+    makeCastAdd,
+    CastAddBody, // Type for cast body
+    Embed, // Type for embeds
+    Message, // Type for the signed message
+    HubAsyncResult, // Type for hub results
+    CastId, // Import CastId type if replying
+    MessageType, // Import MessageType
 } from "@farcaster/hub-web";
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes } from '@noble/hashes/utils';
 
-// --- Configuration --- Get these from environment variables
-const HUB_URL = process.env.FARCASTER_HUB_URL || ""; // e.g., nemes.farcaster.xyz:2283 or IP address
-const HUB_SSL = process.env.FARCASTER_HUB_SSL === "true"; // Set to true if hub uses SSL
-const BOT_ACCOUNT_FID = parseInt(process.env.FARCASTER_BOT_FID || "0");
-// IMPORTANT: Keep your private key secure! Use environment variables or a secret manager.
-const BOT_ACCOUNT_PRIVATE_KEY_HEX = process.env.FARCASTER_BOT_PRIVATE_KEY || "";
-// --- End Configuration ---
+// --- Environment Variable Validation ---
+const HUB_URL = process.env.FARCASTER_HUB_URL;
+const HUB_SSL_STRING = process.env.FARCASTER_HUB_SSL?.toLowerCase();
+const BOT_FID_STRING = process.env.FARCASTER_BOT_FID;
+const BOT_PRIVATE_KEY = process.env.FARCASTER_BOT_PRIVATE_KEY;
 
-if (!BOT_ACCOUNT_FID || !BOT_ACCOUNT_PRIVATE_KEY_HEX || !HUB_URL) {
-  console.warn(
-    "Missing Farcaster environment variables (FARCASTER_HUB_URL, FARCASTER_BOT_FID, FARCASTER_BOT_PRIVATE_KEY)"
-  );
-  // Depending on usage, you might throw an error here instead
+if (!HUB_URL) throw new Error("FARCASTER_HUB_URL is not set in .env");
+if (!BOT_FID_STRING) throw new Error("FARCASTER_BOT_FID is not set in .env");
+if (!BOT_PRIVATE_KEY) throw new Error("FARCASTER_BOT_PRIVATE_KEY is not set in .env");
+
+const BOT_FID = parseInt(BOT_FID_STRING);
+if (isNaN(BOT_FID)) throw new Error("Invalid FARCASTER_BOT_FID in .env");
+if (!BOT_PRIVATE_KEY.startsWith('0x') || BOT_PRIVATE_KEY.length !== 66) {
+    throw new Error("Invalid FARCASTER_BOT_PRIVATE_KEY format in .env");
 }
 
+const HUB_SSL = HUB_SSL_STRING === 'true';
+
+// --- Global Variables (Initialized Once) ---
 let hubClient: HubRpcClient | undefined;
-let ed25519Signer: NobleEd25519Signer | undefined;
+let botSigner: NobleEd25519Signer | undefined;
 
-if (BOT_ACCOUNT_PRIVATE_KEY_HEX) {
-    try {
-        const privateKeyBytes = hexToBytes(BOT_ACCOUNT_PRIVATE_KEY_HEX);
-        ed25519Signer = new NobleEd25519Signer(privateKeyBytes);
-    } catch (error) {
-        console.error("Failed to initialize Farcaster signer:", error);
+/**
+ * Initializes and returns the Hub RPC Client.
+ * Uses cached client after first initialization.
+ */
+function getClient(): HubRpcClient {
+    if (!hubClient) {
+        console.log(`Connecting to Farcaster Hub: ${HUB_URL} (SSL inferred from URL)`);
+        hubClient = getHubRpcClient(HUB_URL!, {});
     }
-}
-
-if (HUB_URL) {
-    hubClient = HUB_SSL
-        ? getSSLHubRpcClient(HUB_URL)
-        : getInsecureHubRpcClient(HUB_URL);
+    return hubClient;
 }
 
 /**
- * Posts a cast to Farcaster.
- * @param text The text content of the cast.
- * @param embeds Optional array of embed URLs (e.g., the Frame URL).
- * @param parentCastId Optional parent cast details for replying.
- * @returns The result from the Hub API.
+ * Initializes and returns the Ed25519 Signer for the bot.
+ * Uses cached signer after first initialization.
  */
-export async function postCast(text: string, embeds?: { url: string }[], parentCastId?: { fid: number; hash: string }) {
-  if (!hubClient || !ed25519Signer || !BOT_ACCOUNT_FID) {
-    throw new Error(
-      "Farcaster client not initialized. Check environment variables."
-    );
-  }
+function getSigner(): NobleEd25519Signer {
+    if (!botSigner) {
+        console.log(`Initializing signer for FID: ${BOT_FID}`);
+        try {
+            const privateKeyBytes = hexToBytes(BOT_PRIVATE_KEY!.substring(2));
+            botSigner = new NobleEd25519Signer(privateKeyBytes);
+        } catch (e) {
+            console.error("Failed to initialize signer:", e);
+            throw new Error("Could not initialize signer from FARCASTER_BOT_PRIVATE_KEY.");
+        }
+    }
+    return botSigner;
+}
 
-  const dataOptions = {
-    fid: BOT_ACCOUNT_FID,
-    network: FarcasterNetwork.MAINNET, // Or TESTNET
-  };
+/**
+ * Submits a cast message to the Farcaster Hub.
+ *
+ * @param text The text content of the cast.
+ * @param embeds Optional array of embeds (e.g., URLs).
+ * @param parentCastId Optional CastId object { fid: number; hash: Uint8Array } to reply to.
+ * @returns A promise that resolves to the Hub's response or rejects on error.
+ */
+export async function submitCast(
+    text: string,
+    embeds?: Embed[],
+    parentCastId?: CastId
+): Promise<HubAsyncResult<Message>> {
+    const client = getClient();
+    const signer = getSigner();
 
-  const castAddBody = {
-    text: text,
-    embeds: embeds || [],
-    mentions: [],
-    mentionsPositions: [],
-    parentUrl: parentCastId ? undefined : undefined, // TODO: Add parent URL support if needed
-    parentCastId: parentCastId,
-  };
+    const dataOptions = {
+        fid: BOT_FID,
+        network: FarcasterNetwork.MAINNET, // Or FarcasterNetwork.TESTNET if needed
+    };
 
-  const castAddResult = await makeCastAdd(
-    castAddBody,
-    dataOptions,
-    ed25519Signer
-  );
+    const castBody: CastAddBody = {
+        type: MessageType.CAST_ADD,
+        text: text,
+        embeds: embeds ?? [],
+        embedsDeprecated: [],
+        mentions: [],
+        mentionsPositions: [],
+        parentCastId: parentCastId,
+        parentUrl: undefined,
+    };
 
-  if (castAddResult.isErr()) {
-      console.error("Failed to create cast message:", castAddResult.error);
-      throw castAddResult.error;
-  }
+    console.log(`Attempting to submit cast: "${text.substring(0, 50)}..."`);
 
-  const message = castAddResult.value;
+    const castAddResult = await makeCastAdd(castBody, dataOptions, signer);
 
-  const result = await hubClient.submitMessage(message);
+    if (castAddResult.isErr()) {
+        console.error("Failed to create CastAdd message:", castAddResult.error);
+        return castAddResult; // Propagate the error result
+    }
 
-  if (result.isErr()) {
-    console.error("Failed to submit cast to hub:", result.error);
-    throw result.error;
-  }
+    const message = castAddResult.value;
 
-  console.log("Successfully submitted cast:", result.value);
-  return result;
-} 
+    const hubResult = await client.submitMessage(message);
+
+    if (hubResult.isErr()) {
+        console.error("Failed to submit message to Hub:", hubResult.error);
+    } else {
+        console.log("Successfully submitted cast to Hub.");
+    }
+
+    return hubResult;
+}
+
+// Optional: Function to close the client if needed (e.g., in serverless envs?)
+// export function closeClient() {
+//     if (hubClient) {
+//         console.log("Closing Hub client connection.");
+//         hubClient.close();
+//         hubClient = undefined;
+//     }
+// } 

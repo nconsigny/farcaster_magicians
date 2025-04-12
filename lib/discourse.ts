@@ -2,7 +2,12 @@ import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 
-const DISCOURSE_BASE_URL = 'https://ethereum-magicians.org';
+// Read from environment variables, provide defaults if necessary
+const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-magicians.org';
+const DISCOURSE_API_KEY = process.env.DISCOURSE_API_KEY;
+// Discourse API often requires a username associated with the key, 'system' is common for global keys
+const DISCOURSE_API_USERNAME = process.env.DISCOURSE_API_USERNAME || 'system';
+
 const STATE_FILE = path.join(process.cwd(), '.discourse_last_topic_id.txt');
 
 interface DiscourseTopic {
@@ -87,11 +92,20 @@ async function writeLastProcessedTopicId(topicId: number): Promise<void> {
 
 export async function fetchNewDiscourseTopics(): Promise<DiscourseTopic[]> {
     const lastProcessedId = await readLastProcessedTopicId();
-    console.log(`Fetching topics newer than ID: ${lastProcessedId}`);
+    console.log(`Fetching topics newer than ID: ${lastProcessedId} from ${DISCOURSE_BASE_URL}`);
+
+    const headers: Record<string, string> = {
+        'Accept': 'application/json',
+    };
+    if (DISCOURSE_API_KEY) {
+        headers['Api-Key'] = DISCOURSE_API_KEY;
+        headers['Api-Username'] = DISCOURSE_API_USERNAME;
+    }
 
     try {
         const response = await axios.get<DiscourseLatestTopicsResponse>(
-            `${DISCOURSE_BASE_URL}/latest.json`
+            `${DISCOURSE_BASE_URL}/latest.json`,
+            { headers }
         );
 
         if (response.status !== 200 || !response.data?.topic_list?.topics) {
@@ -125,8 +139,13 @@ export async function fetchNewDiscourseTopics(): Promise<DiscourseTopic[]> {
 
 // Example of fetching full topic details (if needed later)
 // export async function fetchTopicDetails(topicId: number, slug: string) {
+//     const headers: Record<string, string> = { 'Accept': 'application/json' };
+//     if (DISCOURSE_API_KEY) {
+//         headers['Api-Key'] = DISCOURSE_API_KEY;
+//         headers['Api-Username'] = DISCOURSE_API_USERNAME;
+//     }
 //     try {
-//         const response = await axios.get(`${DISCOURSE_BASE_URL}/t/${slug}/${topicId}.json`);
+//         const response = await axios.get(`${DISCOURSE_BASE_URL}/t/${slug}/${topicId}.json`, { headers });
 //         return response.data;
 //     } catch (error) {
 //         console.error(`Error fetching details for topic ${topicId}:`, error);
@@ -138,13 +157,16 @@ export async function getLatestTopics(): Promise<SimpleTopic[]> {
     const latestTopicsUrl = `${DISCOURSE_BASE_URL}/latest.json`;
     console.log(`Fetching latest topics from: ${latestTopicsUrl}`);
 
+    const headers: Record<string, string> = {
+        'Accept': 'application/json',
+    };
+    if (DISCOURSE_API_KEY) {
+        headers['Api-Key'] = DISCOURSE_API_KEY;
+        headers['Api-Username'] = DISCOURSE_API_USERNAME;
+    }
+
     try {
-        const response = await fetch(latestTopicsUrl, {
-            headers: {
-                'Accept': 'application/json',
-                // Add any other necessary headers, like API keys if the forum requires them for /latest.json (unlikely for public reads)
-            },
-        });
+        const response = await fetch(latestTopicsUrl, { headers });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
