@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { VercelRequest, VercelResponse } from '@vercel/node';
+// import { VercelRequest, VercelResponse } from '@vercel/node'; // Removed import
 import { fetchNewDiscourseTopics } from '@lib/discourse.js';
 import { submitCast } from '@lib/farcaster.js';
 import { Embed } from '@farcaster/hub-web';
@@ -9,7 +9,8 @@ const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-m
 // Simple delay function
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Use 'any' for request and response types
+export default async function handler(req: any, res: any) {
     // Optional: Basic security check (e.g., check for a secret header)
     // const cronSecret = req.headers['x-vercel-cron-secret'];
     // if (cronSecret !== process.env.VERCEL_CRON_SECRET) {

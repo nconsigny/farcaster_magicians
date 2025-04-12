@@ -1,13 +1,14 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// import type { VercelRequest, VercelResponse } from '@vercel/node'; // Removed import
 import { getLatestTopics } from '@lib/discourse.js'; // Import the function using path alias
 
 const DISCOURSE_BASE_URL = process.env.DISCOURSE_BASE_URL || 'https://ethereum-magicians.org';
 // TODO: Replace with your actual domain
 const FRAME_BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
+// Use 'any' for request and response types
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
+  req: any, // Changed from VercelRequest
+  res: any, // Changed from VercelResponse
 ) {
   try {
     // Fetch the latest topics to potentially show the most recent one
